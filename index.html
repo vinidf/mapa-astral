@@ -130,7 +130,7 @@
   .extra .valor{font-family:var(--serif); font-size:19px}
   .extra p{margin:6px 0 0; font-size:13.5px; color:var(--tinta-suave)}
 
-  .leitura{padding:34px 40px; font-size:16px; line-height:1.78}
+  .leitura{margin-top:6px; padding:34px 40px; font-size:16px; line-height:1.78}
   .leitura p{margin:0 0 16px}
   .leitura p:first-of-type::first-letter{
     font-family:var(--serif); font-size:44px; line-height:.9; float:left;
@@ -219,6 +219,8 @@
       <div class="pilares" id="pilares"></div>
     </div>
 
+    <div class="cartao leitura" id="leitura"></div>
+
     <div class="mandala-wrap"><div id="mandala"></div></div>
     <div class="legenda-aspectos">
       <span><i style="border-color:var(--c-trigono)"></i>Trígono</span>
@@ -251,8 +253,6 @@
       </div>
     </div>
 
-    <h2 class="secao">Leitura do seu mapa</h2>
-    <div class="cartao leitura" id="leitura"></div>
   </section>
 
   <footer>
@@ -504,11 +504,11 @@ function renderiza(nome, dt, tz, cidadeTxt, mapa){
     `<span class="pilar"><span class="g">${g}</span><span><small>${rot}</small><b>${gs.signo.nome}</b> ${gs.txt}</span></span>`
   ).join("");
 
+  montaLeitura(nome, mapa);
   desenhaMandala(mapa);
   montaTabela(mapa);
   montaExtras(mapa);
   montaCasas(mapa);
-  montaLeitura(nome, mapa);
 }
 
 /* ── 5a. Mandala SVG ─────────────────────────────────────────────
