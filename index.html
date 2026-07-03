@@ -130,6 +130,15 @@
   .extra .valor{font-family:var(--serif); font-size:19px}
   .extra p{margin:6px 0 0; font-size:13.5px; color:var(--tinta-suave)}
 
+  .leitura{padding:34px 40px; font-size:16px; line-height:1.78}
+  .leitura p{margin:0 0 16px}
+  .leitura p:first-of-type::first-letter{
+    font-family:var(--serif); font-size:44px; line-height:.9; float:left;
+    padding:4px 10px 0 0; color:var(--indigo);
+  }
+  .leitura .aviso{margin:22px 0 0; padding-top:16px; border-top:1px solid var(--linha); font-size:12.5px; color:var(--tinta-suave)}
+  @media (max-width:640px){.leitura{padding:24px 20px}}
+
   footer{margin-top:70px; text-align:center; font-size:12.5px; color:var(--tinta-suave)}
 
   /* animação de revelação da mandala */
@@ -241,6 +250,9 @@
         </table>
       </div>
     </div>
+
+    <h2 class="secao">Leitura do seu mapa</h2>
+    <div class="cartao leitura" id="leitura"></div>
   </section>
 
   <footer>
@@ -495,6 +507,7 @@ function renderiza(nome, dt, tz, cidadeTxt, mapa){
   montaTabela(mapa);
   montaExtras(mapa);
   montaCasas(mapa);
+  montaLeitura(nome, mapa);
 }
 
 /* ── 5a. Mandala SVG ─────────────────────────────────────────────
@@ -649,7 +662,120 @@ function montaExtras(mapa){
   }
 }
 
-/* ── 5d. Tabela de cúspides (duas colunas: casas 1–6 e 7–12) ── */
+/* ── 5d. Leitura interpretativa ──────────────────────────────────
+   Texto de síntese gerado localmente a partir das posições:
+   Sol, Lua, Ascendente/MC, dominâncias, aspectos mais exatos e
+   Nodo Norte. Vocabulário astrológico tradicional; sem rede.      */
+const T_SOL = {
+  "Áries":"impulso direto, coragem e a necessidade de iniciar — você se afirma agindo",
+  "Touro":"constância, senso prático e apego ao que é sólido, simples e prazeroso",
+  "Gêmeos":"curiosidade, versatilidade e uma mente que vive de trocas e ideias",
+  "Câncer":"sensibilidade, memória afetiva e um forte instinto de cuidado e pertencimento",
+  "Leão":"vitalidade, orgulho criativo e a necessidade de brilhar e ser reconhecido",
+  "Virgem":"análise fina, gosto pelo aperfeiçoamento e vontade de ser útil no detalhe",
+  "Libra":"busca de equilíbrio, senso estético e realização através das parcerias",
+  "Escorpião":"intensidade, profundidade emocional e um notável poder de transformação",
+  "Sagitário":"expansão, otimismo e busca constante de sentido, horizonte e liberdade",
+  "Capricórnio":"ambição estruturada, disciplina e um sério senso de responsabilidade",
+  "Aquário":"independência, visão de futuro e um olhar original sobre o coletivo",
+  "Peixes":"empatia, imaginação e permeabilidade ao sutil e ao coletivo"};
+const T_LUA = {
+  "Áries":"reage rápido e precisa de ação para digerir o que sente",
+  "Touro":"busca segurança no estável, no corpo e nas rotinas de prazer",
+  "Gêmeos":"processa emoções falando, nomeando e entendendo",
+  "Câncer":"sente fundo, guarda memórias e nutre — e precisa ser nutrida",
+  "Leão":"precisa de reconhecimento afetivo e aquece quem está por perto",
+  "Virgem":"organiza o sentir, cuida por gestos práticos e tende a cobrar-se em excesso",
+  "Libra":"acalma-se na harmonia e no diálogo; o conflito desorganiza",
+  "Escorpião":"vive afetos intensos, leais e de tudo-ou-nada",
+  "Sagitário":"precisa de espaço, humor e sentido para se sentir bem",
+  "Capricórnio":"contém o que sente e demonstra afeto por responsabilidade e presença",
+  "Aquário":"pede liberdade emocional e elabora o sentir com certo distanciamento",
+  "Peixes":"absorve o clima ao redor e sente o mundo com enorme compaixão"};
+const T_ASC = {
+  "Áries":"com energia frontal, pressa e iniciativa",
+  "Touro":"transmitindo calma, firmeza e uma presença tranquila",
+  "Gêmeos":"comunicativa, ágil e curiosa",
+  "Câncer":"com uma reserva acolhedora, lendo o clima emocional do ambiente",
+  "Leão":"impondo uma presença calorosa e magnética",
+  "Virgem":"observadora, discreta e atenta aos detalhes",
+  "Libra":"cordial, diplomática e voltada ao outro",
+  "Escorpião":"com intensidade contida e olhar penetrante",
+  "Sagitário":"expansiva, franca e entusiasmada",
+  "Capricórnio":"séria, competente e reservada",
+  "Aquário":"original, independente e ao mesmo tempo acessível",
+  "Peixes":"suave, fluida e com certa aura sonhadora"};
+const T_QUALIDADE = {
+  "Áries":"autonomia e coragem","Touro":"estabilidade e valor próprio","Gêmeos":"comunicação e aprendizado",
+  "Câncer":"vínculo e cuidado","Leão":"expressão criativa e liderança","Virgem":"serviço e maestria técnica",
+  "Libra":"cooperação e equilíbrio","Escorpião":"profundidade e regeneração","Sagitário":"visão ampla e fé no caminho",
+  "Capricórnio":"estrutura e realização concreta","Aquário":"originalidade e compromisso coletivo","Peixes":"entrega e sensibilidade"};
+const T_CASA = { // já contraído com "de" para leitura fluida
+  1:"da identidade e da presença pessoal",2:"dos recursos, dos valores e do sustento",
+  3:"da comunicação, dos estudos e do entorno próximo",4:"da família, das raízes e da vida íntima",
+  5:"da criatividade, do prazer e da autoexpressão",6:"do trabalho cotidiano, da saúde e da rotina",
+  7:"das parcerias e dos relacionamentos",8:"das trocas profundas, das crises e da transformação",
+  9:"dos estudos superiores, das viagens e da visão de mundo",10:"da carreira, da vocação e da imagem pública",
+  11:"das amizades, dos grupos e dos projetos de futuro",12:"da interioridade, do inconsciente e do recolhimento"};
+const T_PLANETA = {
+  sol:"a identidade", lua:"as emoções", mercurio:"a mente e a comunicação", venus:"os afetos e o gosto",
+  marte:"a ação e o desejo", jupiter:"a expansão e as crenças", saturno:"a estrutura e os limites",
+  urano:"a necessidade de liberdade", netuno:"a sensibilidade e os ideais", plutao:"a força de transformação",
+  nodo:"o caminho de crescimento"};
+const T_EL = {fogo:"iniciativa, entusiasmo e movimento","terra":"praticidade, constância e senso concreto",
+  ar:"ideias, trocas e vida social","água":"emoção, intuição e vínculo"};
+const T_MOD = {cardinal:"cardinal: você tende a iniciar processos e abrir caminhos",
+  fixo:"fixa: você tende a sustentar, aprofundar e concluir o que começa",
+  "mutável":"mutável: você tende a adaptar-se, transitar e conectar mundos"};
+
+function fraseAspecto(a){
+  const A = PLANETAS[a.a].nome, B = PLANETAS[a.b].nome;
+  const tA = T_PLANETA[a.a], tB = T_PLANETA[a.b];
+  switch(a.tipo){
+    case "conjuncao": return `A conjunção entre ${A} e ${B} funde ${tA} com ${tB}: no seu mapa, atuam como uma coisa só.`;
+    case "trigono": return `O trígono entre ${A} e ${B} faz ${tA} e ${tB} fluírem juntos — um talento que opera com naturalidade.`;
+    case "sextil": return `O sextil entre ${A} e ${B} abre uma cooperação fácil entre ${tA} e ${tB}, disponível quando você a aciona.`;
+    case "quadratura": return `A quadratura entre ${A} e ${B} cria atrito entre ${tA} e ${tB} — uma tensão que, trabalhada, vira motor.`;
+    case "oposicao": return `A oposição entre ${A} e ${B} pede equilíbrio entre ${tA}, de um lado, e ${tB}, de outro — polos que a vida convida a integrar.`;
+  }
+}
+
+function montaLeitura(nome, mapa){
+  const primeiro = nome.split(/\s+/)[0];
+  const sol = mapa.bodies.find(b=>b.id==="sol"), lua = mapa.bodies.find(b=>b.id==="lua");
+  const nodo = mapa.bodies.find(b=>b.id==="nodo");
+  const sgSol = grauSigno(sol.lon).signo, sgLua = grauSigno(lua.lon).signo;
+  const sgAsc = grauSigno(mapa.asc).signo, sgMc = grauSigno(mapa.mc).signo, sgNodo = grauSigno(nodo.lon).signo;
+
+  // dominâncias (mesmo critério dos cartões: 10 planetas + Ascendente)
+  const el = {fogo:0,terra:0,ar:0,"água":0}, mod = {cardinal:0,fixo:0,"mutável":0};
+  mapa.bodies.filter(b=>b.id!=="nodo").map(b=>b.lon).concat([mapa.asc])
+    .forEach(L=>{ const sg = SIGNOS[Math.floor(norm(L)/30)]; el[sg.el]++; mod[sg.mod]++; });
+  const top = o => Object.entries(o).sort((x,y)=>y[1]-x[1])[0][0];
+  const elDom = top(el), modDom = top(mod);
+
+  // aspectos mais exatos, priorizando os que envolvem Sol ou Lua
+  const destaque = [...mapa.aspects]
+    .sort((x,y)=>{
+      const lum = a => (a.a==="sol"||a.b==="sol"||a.a==="lua"||a.b==="lua") ? -1.5 : 0;
+      return (x.orbe+lum(x)) - (y.orbe+lum(y));
+    })
+    .slice(0,4);
+
+  const par = [];
+  par.push(`${primeiro}, o centro do seu mapa é o Sol em ${sgSol.nome}, na casa ${sol.house}: ${T_SOL[sgSol.nome]}. É a energia que pede expressão sobretudo no campo ${T_CASA[sol.house]}.`);
+  par.push(`No plano emocional, sua Lua em ${sgLua.nome} (casa ${lua.house}) ${T_LUA[sgLua.nome]}. É no terreno ${T_CASA[lua.house]} que o coração busca abrigo e nutrição.`);
+  par.push(`Você chega ao mundo ${T_ASC[sgAsc.nome]}, marca do Ascendente em ${sgAsc.nome}. Já o Meio do Céu em ${sgMc.nome} orienta a vocação e a imagem pública para ${T_QUALIDADE[sgMc.nome]}.`);
+  par.push(`O elemento predominante do mapa é ${elDom} (${T_EL[elDom]}), e a tônica é ${T_MOD[modDom]}.`);
+  if(destaque.length) par.push(destaque.map(fraseAspecto).join(" "));
+  par.push(`Por fim, o Nodo Norte em ${sgNodo.nome}, na casa ${nodo.house}, aponta a direção de amadurecimento desta vida: desenvolver ${T_QUALIDADE[sgNodo.nome]} no território ${T_CASA[nodo.house]} — mesmo quando o caminho oposto parecer mais confortável.`);
+
+  $("leitura").innerHTML =
+    par.map(p=>`<p>${p}</p>`).join("") +
+    `<p class="aviso">Leitura gerada automaticamente a partir das posições calculadas do seu mapa — um ponto de partida simbólico, não um veredito.</p>`;
+}
+
+/* ── 5e. Tabela de cúspides (duas colunas: casas 1–6 e 7–12) ── */
 function montaCasas(mapa){
   const tb = $("tabelaCasas").querySelector("tbody"); tb.innerHTML = "";
   const nomeEixo = i => ({0:" (AC)",3:" (IC)",6:" (DC)",9:" (MC)"})[i] || "";
